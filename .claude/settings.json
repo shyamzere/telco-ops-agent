@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(~/.telco-keys/**)",
+      "Read(~/.aws/**)",
+      "Read(./.env)",
+      "Bash(terraform apply:*)",
+      "Bash(terraform destroy:*)"
+    ],
+    "ask": [
+      "Bash(git push:*)"
+    ]
+  }
+}

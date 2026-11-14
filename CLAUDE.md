@@ -4,7 +4,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project status
 
-Work in progress, developed day by day. Expect incomplete pieces: e.g. the `telco-ops-agent` console script in `pyproject.toml` is still a placeholder, and there are no tests or linter configured yet.
+Learning project: a Strands agent queries **fake** telco data in Snowflake through a custom MCP server. It is a work in progress, developed day by day. Expect incomplete pieces: e.g. the `telco-ops-agent` console script in `pyproject.toml` is still a placeholder, and there are no tests or linter configured yet.
+
+## Rules
+
+- Fake data only. Never add real data.
+- The agent's Snowflake role (`AGENT_READONLY`) must stay read-only (see guardrails below).
+- Never read or print anything in `C:\Users\shyam\.telco-keys` or `~/.aws`.
+- Never commit secrets, keys or `.env` files.
+- Run Python with `uv run`. The AWS region is `ap-southeast-2`.
+- The user is learning: explain what you change and why.
 
 ## Commands
 
@@ -23,13 +32,15 @@ Running the agents needs live AWS Bedrock credentials (`ap-southeast-2`) and the
 
 ## Architecture
 
-Three layers, each in one file under `src/telco_ops_agent/`:
+Snowflake setup and check SQL lives in `sql/`, and helper scripts in `scripts/`. The code is three layers, each in one file under `src/telco_ops_agent/`:
 
 1. **`server.py`**: a FastMCP stdio server exposing `list_tables`, `describe_table` and `run_query` over Snowflake `TELCO_DB.OPS`. It opens a new connection per call, using key-pair auth as `AGENT_SVC` with the `AGENT_READONLY` role.
 2. **`agent.py`**: defines the shared `model` (Strands `BedrockModel`, Claude Haiku 4.5 via the `au.` inference profile), the analyst `SYSTEM_PROMPT`, and `make_client()`. `make_client()` launches `server.py` as a subprocess using `sys.executable`, so the agent never connects to Snowflake directly.
 3. **`multi.py`**: imports `model`, `SYSTEM_PROMPT` and `make_client` from `agent.py`. It wraps an analyst agent (with MCP tools) and a writer agent (no tools) as `@tool` functions, and passes both to an orchestrator agent. Sub-agents use `callback_handler=None`, so only the orchestrator streams output.
 
 Changing the model or the analyst prompt in `agent.py` therefore affects both entry points.
+
+The same MCP server is also registered for Claude Code in `.mcp.json` (as `telco-ops`), so Claude Code can query the fake data directly with the same read-only tools.
 
 ## Read-only guardrails (keep these intact)
 

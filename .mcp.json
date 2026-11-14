@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "telco-ops": {
+      "type": "stdio",
+      "command": "uv",
+      "args": ["run", "python", "src/telco_ops_agent/server.py"]
+    }
+  }
+}
