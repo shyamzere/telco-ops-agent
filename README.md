@@ -23,6 +23,8 @@ question ──────► │ Orchestrator                             │
 | [scripts/gen_keys.py](scripts/gen_keys.py) | Generates the RSA key pair used for Snowflake key-pair auth |
 | [scripts/test_snowflake.py](scripts/test_snowflake.py) | Connection smoke test |
 | [hello.py](hello.py) | Minimal Strands + Bedrock check, no tools |
+| [.mcp.json](.mcp.json) | Registers the same MCP server for Claude Code as `telco-ops` |
+| [.claude/settings.json](.claude/settings.json) | Claude Code permissions: denies reading keys, `~/.aws` and `.env`; asks before `git push` |
 
 ### Data model
 
@@ -60,7 +62,7 @@ uv sync
 
 ### 2. Create the Snowflake objects
 
-Run [sql/setup.sql](sql/setup.sql) in a Snowflake worksheet as `ACCOUNTADMIN`. It ends by checking that the read-only role **cannot** delete; that final `DELETE` is expected to fail.
+Run [sql/setup.sql](sql/setup.sql) in a Snowflake worksheet as `ACCOUNTADMIN`. It grants `AGENT_READONLY` to the Snowflake user `"shyamzere"` so you can test the role; change that to your own username first. It ends by checking that the read-only role **cannot** delete; that final `DELETE` is expected to fail.
 
 ### 3. Create the service user and key
 
@@ -84,7 +86,7 @@ GRANT ROLE AGENT_READONLY TO USER AGENT_SVC;
 ### 4. Configure
 
 - The Snowflake account identifier is hardcoded as `ACCOUNT` in [server.py](src/telco_ops_agent/server.py) and in [test_snowflake.py](scripts/test_snowflake.py). Change it to your own account.
-- To keep the private key elsewhere, set `SNOWFLAKE_KEY_PATH`. The default is `~/.telco-keys/agent_key.p8`.
+- To keep the private key elsewhere, set `SNOWFLAKE_KEY_PATH` (default `~/.telco-keys/agent_key.p8`). Only `server.py` reads this variable; `scripts/test_snowflake.py` always uses the default path.
 - AWS credentials are taken from the standard boto3 chain (`aws login`, `AWS_PROFILE`, env vars, ...).
 
 ### 5. Verify
@@ -116,8 +118,14 @@ The agent starts the MCP server itself as a subprocess. To inspect the tools on 
 uv run mcp dev src/telco_ops_agent/server.py
 ```
 
+### From Claude Code
+
+[.mcp.json](.mcp.json) registers the server as `telco-ops`, so Claude Code opened in this repo can call `list_tables`, `describe_table` and `run_query` directly, with the same read-only guardrails. Claude Code asks you to approve project MCP servers the first time.
+
 ## Notes
 
 - The model is set in [agent.py](src/telco_ops_agent/agent.py) and shared by all the agents in `multi.py`.
 - The `telco-ops-agent` console script in `pyproject.toml` is still a placeholder that prints a greeting.
+- There are no tests or CI yet.
+- The keyword block list in `run_query` matches whole words anywhere in the query, so it can reject harmless queries that mention words like `set` or `update` (for example inside a string). This is deliberate: a false rejection is safer than a missed write.
 - Keep `~/.telco-keys/` out of version control. It lives outside the repo by default.
