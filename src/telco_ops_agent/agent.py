@@ -1,12 +1,14 @@
+import os
 import sys
-from pathlib import Path
 
 from mcp import StdioServerParameters, stdio_client
 from strands import Agent
 from strands.models import BedrockModel
 from strands.tools.mcp import MCPClient
 
-SERVER = Path(__file__).parent / "server.py"
+# Environment variables server.py reads. The MCP stdio client only passes a small
+# "safe" set (PATH, HOME, ...) to the subprocess, so these must be forwarded explicitly.
+SERVER_ENV_VARS = ("SNOWFLAKE_KEY_PATH",)
 
 model = BedrockModel(
     model_id="au.anthropic.claude-haiku-4-5-20251001-v1:0",
@@ -25,16 +27,26 @@ Rules:
 
 
 def make_client() -> MCPClient:
+    env = {k: os.environ[k] for k in SERVER_ENV_VARS if k in os.environ} or None
     return MCPClient(
         lambda: stdio_client(
-            StdioServerParameters(command=sys.executable, args=[str(SERVER)])
+            StdioServerParameters(
+                command=sys.executable,
+                args=["-m", "telco_ops_agent.server"],
+                env=env,
+            )
         )
     )
 
 
-if __name__ == "__main__":
-    question = " ".join(sys.argv[1:]) or "Which region has the most critical incidents?"
+def ask(question: str, **agent_kwargs) -> str:
+    """Run the analyst agent on one question and return its final answer text."""
     with make_client() as client:
         tools = client.list_tools_sync()
-        agent = Agent(model=model, tools=tools, system_prompt=SYSTEM_PROMPT)
-        agent(question)
+        agent = Agent(model=model, tools=tools, system_prompt=SYSTEM_PROMPT, **agent_kwargs)
+        return str(agent(question))
+
+
+if __name__ == "__main__":
+    question = " ".join(sys.argv[1:]) or "Which region has the most critical incidents?"
+    ask(question)
