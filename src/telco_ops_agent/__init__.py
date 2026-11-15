@@ -1,2 +1,1 @@
-def main() -> None:
-    print("Hello from telco-ops-agent!")
+"""Read-only telco ops agent: MCP server, Strands agents and the Lambda handler."""

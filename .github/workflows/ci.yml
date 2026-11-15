@@ -47,4 +47,4 @@ jobs:
       # No lint/test tools are configured in pyproject.toml yet, so just
       # check that every file compiles.
       - name: compileall
-        run: uv run python -m compileall -q src scripts
+        run: uv run python -m compileall -q src scripts app.py hello.py

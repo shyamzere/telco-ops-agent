@@ -15,10 +15,11 @@ For any question about telco incidents or tickets:
 2. Call writer_agent with the analyst's full output.
 3. Reply with the writer's summary, then the SQL the analyst ran.
 For anything else, say you can only help with telco ops data.
+The data is read-only. If asked to insert, update, delete, create, drop or change anything, politely refuse without calling any tool and say you only answer questions.
 Never write SQL yourself and never invent numbers."""
 
 
-def build(client):
+def build(client, **orchestrator_kwargs):
     tools = client.list_tools_sync()
     analyst = Agent(
         model=model, tools=tools, system_prompt=SYSTEM_PROMPT, callback_handler=None
@@ -39,11 +40,17 @@ def build(client):
         model=model,
         tools=[analyst_agent, writer_agent],
         system_prompt=ORCHESTRATOR_PROMPT,
+        **orchestrator_kwargs,
     )
+
+
+def ask(question: str, **orchestrator_kwargs) -> str:
+    """Run the orchestrator on one question and return its final answer text."""
+    with make_client() as client:
+        orchestrator = build(client, **orchestrator_kwargs)
+        return str(orchestrator(question))
 
 
 if __name__ == "__main__":
     question = " ".join(sys.argv[1:]) or "Which region has the most critical incidents?"
-    with make_client() as client:
-        orchestrator = build(client)
-        orchestrator(question)
+    ask(question)

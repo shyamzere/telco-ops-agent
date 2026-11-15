@@ -37,7 +37,12 @@ def _connect():
         warehouse="TELCO_WH",
         database="TELCO_DB",
         schema="OPS",
-        session_parameters={"STATEMENT_TIMEOUT_IN_SECONDS": TIMEOUT_SECONDS},
+        # Snowflake defaults to US Pacific time. The fake sites are in New Zealand,
+        # so "today" and "last 7 days" should be evaluated in NZ time.
+        session_parameters={
+            "STATEMENT_TIMEOUT_IN_SECONDS": TIMEOUT_SECONDS,
+            "TIMEZONE": "Pacific/Auckland",
+        },
     )
 
 
