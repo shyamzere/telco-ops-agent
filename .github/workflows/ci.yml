@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+# Read-only token: CI only checks code. No secrets, no AWS credentials, no deploy.
+permissions:
+  contents: read
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: hashicorp/setup-terraform@v4
+
+      - name: terraform fmt
+        run: terraform fmt -check -recursive
+
+      # -backend=false: download providers only, no state, no AWS calls.
+      - name: terraform init
+        run: terraform init -backend=false
+
+      # validate evaluates filemd5()/filebase64sha256() on the zip, which is
+      # gitignored. An empty placeholder is enough; CI never deploys it.
+      - name: placeholder lambda.zip
+        run: mkdir -p ../build/lambda && touch ../build/lambda/lambda.zip
+
+      - name: terraform validate
+        run: terraform validate
+
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v7
+
+      - name: uv sync
+        run: uv sync
+
+      # No lint/test tools are configured in pyproject.toml yet, so just
+      # check that every file compiles.
+      - name: compileall
+        run: uv run python -m compileall -q src scripts
