@@ -92,6 +92,23 @@ Timestamps fall within the 90 days before the setup script ran.
 
 ## Run locally
 
+### Everyday commands
+
+Once the one-off setup below is done, these are all you need. In VS Code, run a task with Ctrl+Shift+P > "Tasks: Run Task" (the tasks are in [.vscode/tasks.json](.vscode/tasks.json)). Tasks always run from the project folder. Terminal commands must be run from the project folder (`telco-ops-agent`), not from `infra/`.
+
+| What you want | VS Code | Terminal |
+| --- | --- | --- |
+| Start the demo UI at <http://localhost:8501> | Ctrl+Shift+B, or task "Demo UI (Streamlit)" | `uv run --group ui streamlit run app.py` |
+| Stop the demo UI | Ctrl+C in the terminal panel | Ctrl+C |
+| Ask one question from the terminal | n/a | `uv run python -m telco_ops_agent.agent "<question>"` |
+| Same, with the multi-agent summary | n/a | `uv run python -m telco_ops_agent.multi "<question>"` |
+| Build the Lambda zip (about 3 minutes) | Task "Build Lambda zip" | `uv run python scripts/build_lambda.py` |
+| Preview AWS changes (changes nothing) | Task "Terraform plan" | `terraform -chdir=infra plan` |
+| Deploy to Lambda (build, then apply) | Task "Deploy Lambda (build + apply)" | Build command above, then `terraform -chdir=infra apply` |
+| Run the same checks as CI | Task "CI checks (local)" | `uv run python -m compileall -q src scripts app.py hello.py` and `terraform -chdir=infra fmt -check -recursive` |
+
+Deploying is only needed after you change the agent code. When you apply, read the plan before typing `yes`.
+
 ### Prerequisites
 
 - Python 3.13 and [uv](https://docs.astral.sh/uv/)
@@ -166,9 +183,10 @@ uv run mcp dev src/telco_ops_agent/server.py
 [app.py](app.py) is a small Streamlit chat page. Streamlit is in a separate `ui` dependency group, so it is not installed by a plain `uv sync` and is not included in the Lambda zip.
 
 ```sh
-uv sync --group ui
-uv run streamlit run app.py
+uv run --group ui streamlit run app.py
 ```
+
+In VS Code, press Ctrl+Shift+B instead. See [Everyday commands](#everyday-commands) for the other tasks.
 
 Pick a mode in the sidebar:
 
@@ -182,7 +200,7 @@ The sidebar also has four example questions. "Delete all closed tickets." shows 
 
 The UI uses the same config as the CLI: the standard AWS credential chain and the optional `SNOWFLAKE_KEY_PATH`. It adds no secrets.
 
-Note: a plain `uv sync` removes the `ui` group again. Use `uv sync --group ui` while you work on the UI.
+Note: a plain `uv sync` removes the `ui` group again. `uv run --group ui ...` installs it back automatically.
 
 ## Deploy to Lambda
 

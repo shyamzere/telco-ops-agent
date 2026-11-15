@@ -25,7 +25,7 @@ uv sync                                                    # install deps (remov
 uv sync --group ui                                         # install deps plus Streamlit
 uv run python -m telco_ops_agent.agent "<question>"        # single analyst agent
 uv run python -m telco_ops_agent.multi "<question>"        # orchestrator (analyst + writer)
-uv run streamlit run app.py                                # demo UI (needs the ui group)
+uv run --group ui streamlit run app.py                     # demo UI (also VS Code Ctrl+Shift+B, see .vscode/tasks.json)
 uv run mcp dev src/telco_ops_agent/server.py               # inspect MCP tools on their own
 uv run scripts/test_snowflake.py                           # Snowflake connection smoke test
 uv run hello.py                                            # Bedrock access check, no tools

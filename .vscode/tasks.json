@@ -1,0 +1,47 @@
+{
+  // Run with Ctrl+Shift+P > "Tasks: Run Task", or Ctrl+Shift+B for the demo UI.
+  // Every task runs from the repo root, whatever folder your terminal is in.
+  "version": "2.0.0",
+  "options": {
+    "cwd": "${workspaceFolder}"
+  },
+  "tasks": [
+    {
+      "label": "Demo UI (Streamlit)",
+      "detail": "Start the demo UI at http://localhost:8501. Stop it with Ctrl+C.",
+      "type": "shell",
+      "command": "uv run --group ui streamlit run app.py",
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Build Lambda zip",
+      "detail": "Build build/lambda/lambda.zip (takes about 3 minutes).",
+      "type": "shell",
+      "command": "uv run python scripts/build_lambda.py",
+      "problemMatcher": []
+    },
+    {
+      "label": "Terraform plan",
+      "detail": "Preview AWS changes. Changes nothing.",
+      "type": "shell",
+      "command": "terraform -chdir=infra plan",
+      "problemMatcher": []
+    },
+    {
+      "label": "Deploy Lambda (build + apply)",
+      "detail": "Build the zip, then terraform apply. Read the plan before typing yes.",
+      "type": "shell",
+      "command": "terraform -chdir=infra apply",
+      "dependsOn": "Build Lambda zip",
+      "problemMatcher": []
+    },
+    {
+      "label": "CI checks (local)",
+      "detail": "The same compile and format checks CI runs.",
+      "type": "shell",
+      "command": "uv run python -m compileall -q src scripts app.py hello.py; terraform -chdir=infra fmt -check -recursive",
+      "problemMatcher": []
+    }
+  ]
+}
